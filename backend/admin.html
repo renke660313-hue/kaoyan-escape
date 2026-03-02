@@ -107,7 +107,7 @@
             codeList.innerHTML = '<p>生成中...</p>';
             
             try {
-                const response = await fetch('http://localhost:3001/api/generate-codes', {
+                const response = await fetch('https://kao-yan-production.up.railway.app/api', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
