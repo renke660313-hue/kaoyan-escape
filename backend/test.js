@@ -48,7 +48,7 @@ async function testVerifyCode() {
   } catch (error) {
     console.error('测试失败:', error);
   }
-}
+} 
 
 // 运行测试
 testGenerateCodes();
