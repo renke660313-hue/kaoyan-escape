@@ -16,7 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // 后端API地址
-const API_BASE_URL = 'http://kaoyan-escape-production.up.reailway.app/api';
+const API_BASE_URL = 'http://kaoyan-escape-production.up.railway.app/api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
