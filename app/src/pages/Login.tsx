@@ -50,8 +50,8 @@ export function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg mb-4">
             <BookOpen className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">考研单词故事</h1>
-          <p className="text-gray-600">通过50个有趣的故事，轻松掌握5500个考研单词</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">考研出逃计划</h1>
+          <p className="text-gray-600">通过50个故事爽文，轻松掌握5500个考研单词</p>
         </div>
 
         {/* 登录表单 */}
