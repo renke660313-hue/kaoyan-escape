@@ -84,10 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    setUser(null);
+    if (user?.phone) {
+      localStorage.setItem('act_' + user.phone, 'true');
+  };
+      setUser(null);
     localStorage.removeItem('kaoyan_user');
   };
-
   const toggleMasteredWord = (word: string) => {
     if (!user) return;
     const newWords = user.masteredWords.includes(word)
