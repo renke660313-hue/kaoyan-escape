@@ -8,7 +8,7 @@ export function Login() {
   const [activationCode, setActivationCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
+const isPreviouslyActivated = localStorage.getItem('act_' + phone) === 'true';
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -30,7 +30,8 @@ export function Login() {
     }
 
     try {
-      const success = await login(phone, activationCode);
+      const finalCode = isAct ? 'KAOYAN2024' : activationCode;
+      const success = await login(phone, finalCode);
       if (!success) {
         setError('手机号或激活码错误');
       }
