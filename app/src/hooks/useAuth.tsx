@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (phone: string, code: string): Promise<boolean> => {
-    // 1. 优先处理万能码逻辑（绕过网络请求，提升老用户二次登录体验）
+    // 1. 【核心修正】必须先判断万能码，直接返回 true 绕过后续所有 fetch 请求
     if (code === 'KAOYAN2024') {
       const newUser: User = {
         phone,
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     }
 
-    // 2. 正常请求后端验证流程
+    // 2. 只有不是万能码时，才走网络请求流程
     try {
       const response = await fetch(`${API_BASE_URL}/verify-code`, {
         method: 'POST',
@@ -63,9 +63,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ phone, code }),
       });
 
+      if (!response.ok) {
+        throw new Error('网络响应异常');
+      }
+
       const data = await response.json();
 
-      if (data.valid) { // 后端 server.js 返回的是 valid 字段
+      if (data.valid) { // 匹配后端 valid 字段
         const newUser: User = {
           phone,
           isActivated: true,
