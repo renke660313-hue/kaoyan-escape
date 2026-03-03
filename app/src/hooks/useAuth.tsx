@@ -15,7 +15,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// 后端API地址
+// 后端 API 地址
 const API_BASE_URL = 'https://kaoyan-escape-production.up.railway.app/api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // 登录有效期 30 天
         if (Date.now() - parsed.loginTime < 30 * 24 * 60 * 60 * 1000) {
           setUser(parsed);
         } else {
@@ -38,34 +39,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (phone: string, code: string): Promise<boolean> => {
-    // 1. 【核心修正】必须先判断万能码，直接返回 true 绕过后续所有 fetch 请求
-    if (code === 'KAOYAN2024') {
+    // 【逻辑 1】万能码或本地已标记为“已激活”的绿色通道
+    // 只要是万能码，或者该手机号在本地 localStorage 有激活标记
+    const isLocallyActivated = localStorage.getItem('act_' + phone) === 'true';
+    
+    if (code === 'KAOYAN2024' || isLocallyActivated) {
       const newUser: User = {
         phone,
         isActivated: true,
         loginTime: Date.now(),
-        masteredWords: [],
-        favoriteWords: [],
-        readingProgress: { storyId: 1, lastReadTime: Date.now() },
+        masteredWords: user?.masteredWords || [],
+        favoriteWords: user?.favoriteWords || [],
+        readingProgress: user?.readingProgress || { storyId: 1, lastReadTime: Date.now() },
       };
       setUser(newUser);
       localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
+      localStorage.setItem('act_' + phone, 'true'); // 确保永久记住该手机号的激活状态
       return true;
     }
 
-    // 2. 只有不是万能码时，才走网络请求流程
+    // 【逻辑 2】首次使用随机激活码登录的正常验证流程
     try {
       const response = await fetch(`${API_BASE_URL}/verify-code`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code }),
       });
-
-      if (!response.ok) {
-        throw new Error('网络响应异常');
-      }
 
       const data = await response.json();
 
@@ -80,23 +79,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(newUser);
         localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
+        // 【关键】登录成功后，立刻在本地永久记录该手机号已激活
+        localStorage.setItem('act_' + phone, 'true'); 
         return true;
       }
       return false;
     } catch (error) {
       console.error('登录请求失败:', error);
+      // 网络错误时，如果本地有激活标记，依然允许登录
+      if (isLocallyActivated) return true;
       return false;
     }
   };
 
   const logout = () => {
-    if (user?.phone) {
-      localStorage.setItem('act_' + user.phone, 'true');
-    }
+    // 退出时，不清除 'act_' 开头的激活标记，只清除当前登录态
     setUser(null);
     localStorage.removeItem('kaoyan_user');
   };
 
+  // ... 其余单词管理逻辑保持不变
   const toggleMasteredWord = (word: string) => {
     if (!user) return;
     const newWords = user.masteredWords.includes(word)
