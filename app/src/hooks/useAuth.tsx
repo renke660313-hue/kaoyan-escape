@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (phone: string, code: string): Promise<boolean> => {
-    // 【逻辑 1】万能码或本地已标记为“已激活”的绿色通道
-    // 只要是万能码，或者该手机号在本地 localStorage 有激活标记
+    // 【核心逻辑 A】最高优先级拦截器：检查万能码或本地已激活标记
+    // 只要满足其一，立刻登录成功，绝对不发送任何网络 fetch 请求！
     const isLocallyActivated = localStorage.getItem('act_' + phone) === 'true';
     
     if (code === 'KAOYAN2024' || isLocallyActivated) {
@@ -54,11 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       setUser(newUser);
       localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-      localStorage.setItem('act_' + phone, 'true'); // 确保永久记住该手机号的激活状态
+      localStorage.setItem('act_' + phone, 'true'); // 永久记住此手机号已激活
       return true;
     }
 
-    // 【逻辑 2】首次使用随机激活码登录的正常验证流程
+    // 【核心逻辑 B】普通验证流程：只有非万能码且本地未激活时才联网
     try {
       const response = await fetch(`${API_BASE_URL}/verify-code`, {
         method: 'POST',
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
-      if (data.valid) { // 匹配后端 valid 字段
+      if (data.valid) { // 后端返回 valid 字段
         const newUser: User = {
           phone,
           isActivated: true,
@@ -79,26 +79,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         setUser(newUser);
         localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-        // 【关键】登录成功后，立刻在本地永久记录该手机号已激活
-        localStorage.setItem('act_' + phone, 'true'); 
+        localStorage.setItem('act_' + phone, 'true'); // 登录成功，记住激活状态
         return true;
       }
       return false;
     } catch (error) {
       console.error('登录请求失败:', error);
-      // 网络错误时，如果本地有激活标记，依然允许登录
+      // 如果联网失败但本地已有记录，依然允许登录
       if (isLocallyActivated) return true;
       return false;
     }
   };
 
   const logout = () => {
-    // 退出时，不清除 'act_' 开头的激活标记，只清除当前登录态
     setUser(null);
     localStorage.removeItem('kaoyan_user');
+    // 注意：登出不清除 'act_' 标记，实现“一次激活，永久免码”
   };
 
-  // ... 其余单词管理逻辑保持不变
   const toggleMasteredWord = (word: string) => {
     if (!user) return;
     const newWords = user.masteredWords.includes(word)
