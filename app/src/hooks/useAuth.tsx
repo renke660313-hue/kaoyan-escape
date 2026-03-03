@@ -37,70 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (phone: string, code: string): Promise<boolean> => {
-    // 首先检查本地存储，优先使用本地记录登录
-    const savedUser = localStorage.getItem('kaoyan_user');
-    if (savedUser) {
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        if (parsedUser.phone === phone) {
-          // 即使登录时间过期，也允许登录
-          parsedUser.loginTime = Date.now();
-          setUser(parsedUser);
-          localStorage.setItem('kaoyan_user', JSON.stringify(parsedUser));
-          return true;
-        }
-      } catch {
-        localStorage.removeItem('kaoyan_user');
-      }
-    }
-
-    // 测试账号逻辑 - 无论网络状况如何，都允许登录
-    if (phone === '13800138000' && code === 'KAOYAN2024') {
-      const newUser: User = {
-        phone,
-        isActivated: true,
-        loginTime: Date.now(),
-        masteredWords: [],
-        favoriteWords: [],
-        readingProgress: { storyId: 1, lastReadTime: Date.now() },
-      };
-      setUser(newUser);
-      localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-      return true;
-    }
-
-    // 尝试网络请求验证激活码
-    try {
-      const response = await fetch(`${API_BASE_URL}/verify-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ phone, code }),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.valid) {
-          const newUser: User = {
-            phone,
-            isActivated: true,
-            loginTime: Date.now(),
-            masteredWords: [],
-            favoriteWords: [],
-            readingProgress: { storyId: 1, lastReadTime: Date.now() },
-          };
-          setUser(newUser);
-          localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-          return true;
-        }
-      }
-    } catch (error) {
-      console.error('网络请求失败:', error);
-    }
-
-    // 如果网络请求失败，创建新的用户记录
+    // 直接创建新的用户记录，跳过所有验证
     // 这里假设用户已经通过小红书购买了激活码
     const newUser: User = {
       phone,
