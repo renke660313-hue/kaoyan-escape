@@ -121,7 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...user, readingProgress: { storyId, lastReadTime: Date.now() } };
     setUser(updated);
     localStorage.setItem('kaoyan_user', JSON.stringify(updated));
-  };
 
   return (
     <AuthContext.Provider value={{
