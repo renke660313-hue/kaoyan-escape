@@ -11,24 +11,22 @@ interface AuthContextType {
   isWordMastered: (word: string) => boolean;
   isWordFavorite: (word: string) => boolean;
   updateReadingProgress: (storyId: number) => void;
-  checkUserExists: (phone: string) => boolean; // 新增：检查用户是否曾登录
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// 后端API地址 (保留备用，当前逻辑为纯本地模拟)
-const API_BASE_URL = 'https://kaoyan-escape-production.up.railway.app/api';
+// 激活记录的本地存储 Key
+const ACTIVATED_PHONES_KEY = 'kaoyan_activated_phones';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  // 初始化：从本地加载用户状态
   useEffect(() => {
     const saved = localStorage.getItem('kaoyan_user');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // 检查登录有效期（30天）
+        // 登录有效期 30 天
         if (Date.now() - parsed.loginTime < 30 * 24 * 60 * 60 * 1000) {
           setUser(parsed);
         } else {
@@ -40,25 +38,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 新增逻辑：检查该手机号是否已经在本机激活过
-  const checkUserExists = (phone: string): boolean => {
-    const history = localStorage.getItem(`activated_user_${phone}`);
-    return !!history;
-  };
-
   const login = async (phone: string, code: string): Promise<boolean> => {
-    try {
-      // 核心需求实现：
-      // 如果手机号匹配且（验证码正确 或 之前已经激活过）
-      const isAlreadyActivated = checkUserExists(phone);
-      
-      // 这里假设激活码是 1150FE（对应你截图中的值）
-      // 如果用户之前登录过，则 code 可以为空或任意值
-      if (!isAlreadyActivated && code !== '1150FE' && code !== '') {
-         // 如果是第一次登录且码不对，可以根据需要抛出错误
-         // 这里为了演示，只要有码就通过，或者你可以根据实际业务调整
-      }
+    // 模拟一个极短的网络延迟，增加真实感但不会报错
+    await new Promise(resolve => setTimeout(resolve, 500));
 
+    // 1. 获取已激活手机号列表
+    const activatedPhones = JSON.parse(localStorage.getItem(ACTIVATED_PHONES_KEY) || '[]');
+    const isAlreadyActivated = activatedPhones.includes(phone);
+
+    // 2. 校验逻辑：已激活用户免码，新用户校验特定码 (KAOYAN2024)
+    const isCodeValid = code.trim().toUpperCase() === 'KAOYAN2024';
+
+    if (isAlreadyActivated || isCodeValid) {
       const newUser: User = {
         phone,
         isActivated: true,
@@ -68,31 +59,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         readingProgress: { storyId: 1, lastReadTime: Date.now() },
       };
 
-      // 1. 更新当前状态
+      // 保存当前登录状态
       setUser(newUser);
-      // 2. 持久化当前登录状态
       localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-      // 3. 记录该手机号已激活，下次登录免码
-      localStorage.setItem(`activated_user_${phone}`, 'true');
-      
+
+      // 如果是第一次激活，存入白名单
+      if (!isAlreadyActivated) {
+        activatedPhones.push(phone);
+        localStorage.setItem(ACTIVATED_PHONES_KEY, JSON.stringify(activatedPhones));
+      }
+
       return true;
-    } catch (error) {
-      console.error('Login Error:', error);
-      return false;
     }
+
+    // 如果校验不通过，直接抛出异常，让 UI 捕获并显示特定的错误
+    throw new Error('INVALID_CODE');
   };
 
   const logout = () => {
     setUser(null);
-    // 注意：只删除登录态，不删除手机号激活记录 `activated_user_${phone}`
-    localStorage.removeItem('kaoyan_user');
+    localStorage.removeItem('kaoyan_user'); // 仅退出登录，不清除激活白名单
   };
 
+  // ... 单词管理相关代码保持不变 ...
   const toggleMasteredWord = (word: string) => {
     if (!user) return;
     const newWords = user.masteredWords.includes(word)
-      ? user.masteredWords.filter(w => w !== word)
-      : [...user.masteredWords, word];
+      ? user.masteredWords.filter(w => w !== word) : [...user.masteredWords, word];
     const updated = { ...user, masteredWords: newWords };
     setUser(updated);
     localStorage.setItem('kaoyan_user', JSON.stringify(updated));
@@ -101,8 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const toggleFavoriteWord = (word: string) => {
     if (!user) return;
     const newWords = user.favoriteWords.includes(word)
-      ? user.favoriteWords.filter(w => w !== word)
-      : [...user.favoriteWords, word];
+      ? user.favoriteWords.filter(w => w !== word) : [...user.favoriteWords, word];
     const updated = { ...user, favoriteWords: newWords };
     setUser(updated);
     localStorage.setItem('kaoyan_user', JSON.stringify(updated));
@@ -120,16 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user,
-      isAuthenticated: !!user,
-      login,
-      logout,
-      toggleMasteredWord,
-      toggleFavoriteWord,
-      isWordMastered,
-      isWordFavorite,
-      updateReadingProgress,
-      checkUserExists
+      user, isAuthenticated: !!user, login, logout,
+      toggleMasteredWord, toggleFavoriteWord, isWordMastered, isWordFavorite, updateReadingProgress
     }}>
       {children}
     </AuthContext.Provider>
