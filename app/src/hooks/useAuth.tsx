@@ -37,7 +37,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = async (phone: string, code: string): Promise<boolean> => {
+ const login = async (phone: string, code: string): Promise<boolean> => {
+    // 1. 优先处理万能码逻辑（绕过网络请求，提升老用户二次登录体验）
+    if (code === 'KAOYAN2024') {
+      const newUser: User = {
+        phone,
+        isActivated: true,
+        loginTime: Date.now(),
+        masteredWords: [],
+        favoriteWords: [],
+        readingProgress: { storyId: 1, lastReadTime: Date.now() },
+      };
+      setUser(newUser);
+      localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
+      return true;
+    }
+
+    // 2. 正常请求后端验证流程
     try {
       const response = await fetch(`${API_BASE_URL}/verify-code`, {
         method: 'POST',
@@ -46,10 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ phone, code }),
       });
-      
+
       const data = await response.json();
-      
-      if (data.valid) {
+
+      if (data.valid) { // 后端 server.js 返回的是 valid 字段
         const newUser: User = {
           phone,
           isActivated: true,
@@ -64,23 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('登录失败:', error);
-      // 开发环境下的测试账号
-      if (phone === '13800138000' && code === 'KAOYAN2024') {
-        const newUser: User = {
-          phone,
-          isActivated: true,
-          loginTime: Date.now(),
-          masteredWords: [],
-          favoriteWords: [],
-          readingProgress: { storyId: 1, lastReadTime: Date.now() },
-        };
-        setUser(newUser);
-        localStorage.setItem('kaoyan_user', JSON.stringify(newUser));
-        return true;
-      }
+      console.error('登录请求失败:', error);
       return false;
     }
+  };
   };
 
   const logout = () => {
