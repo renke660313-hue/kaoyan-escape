@@ -78,7 +78,14 @@ app.post('/api/generate-codes', (req, res) => {
     }
   });
 });
-
+// 插入万能码逻辑
+app.post('/api/verify-code', (req, res, next) => {
+    const { phone, code } = req.body;
+    if (code === 'KAOYAN2024') {
+        return res.json({ valid: true, message: '万能码验证成功' });
+    }
+    next(); // 如果不是万能码，继续走原来的数据库查询流程
+});
 // 验证激活码
 app.post('/api/verify-code', (req, res) => {
   const { phone, code } = req.body;
