@@ -1,5 +1,5 @@
 import { useState, useEffect, createContext, useContext } from 'react';
-import type { User } from '@/types';
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
- const login = async (phone: string, code: string): Promise<boolean> => {
+  const login = async (phone: string, code: string): Promise<boolean> => {
     // 1. 优先处理万能码逻辑（绕过网络请求，提升老用户二次登录体验）
     if (code === 'KAOYAN2024') {
       const newUser: User = {
@@ -84,15 +84,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return false;
     }
   };
-  };
 
   const logout = () => {
     if (user?.phone) {
       localStorage.setItem('act_' + user.phone, 'true');
-  };
-      setUser(null);
+    }
+    setUser(null);
     localStorage.removeItem('kaoyan_user');
   };
+
   const toggleMasteredWord = (word: string) => {
     if (!user) return;
     const newWords = user.masteredWords.includes(word)
@@ -121,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const updated = { ...user, readingProgress: { storyId, lastReadTime: Date.now() } };
     setUser(updated);
     localStorage.setItem('kaoyan_user', JSON.stringify(updated));
+  };
 
   return (
     <AuthContext.Provider value={{
