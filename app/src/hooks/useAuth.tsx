@@ -16,7 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // 确保这里的 API 地址与你的 Railway 后端一致
-const API_BASE_URL = 'https://kaoyan-escape-production.up.railway.app/api';
+const API_BASE_URL = 'https://kaoyan-escape-production.up.railway.app';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
